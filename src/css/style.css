@@ -1,0 +1,362 @@
+body {
+    font-family: Verdana, Tahoma, sans-serif;
+    margin: 0;
+    padding: 0;
+    justify-content: center;
+    align-items: center;
+    background-color: #086da7;
+}
+
+.board {
+    text-align: center;
+}
+
+.planner_container {
+    width: 80vw;
+    margin: 0 auto;
+    display: flex;
+    justify-content: flex-start;
+    flex-wrap: wrap;
+}
+
+.task_container {
+    display: inline-block;
+    position: relative;
+    padding: 4vh 1vh ;
+    background-color: #ecebeb;
+    border-radius: 8px;
+    margin: 10px 5px 10px 5px;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+    width: 30%;
+    height:fit-content;
+    margin: 10px auto;
+    box-sizing: border-box;
+}
+
+h2 {
+
+    font-size: 16px;
+    color: #333;
+    font-weight: 500;
+}
+
+.task {
+    width:100%;
+    margin-bottom: 10px;
+    
+}
+.task_input_wrapper {
+    min-width: 100%;
+    position: relative;
+    display: flex;
+    background: #fff;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    border-radius: 5px;
+}
+
+.task_input {
+    word-wrap: break-word;
+    overflow-wrap:break-word;
+    position: relative;
+    border: none;
+    font-size: 12px;
+    width: 100%;
+    background: #fff;
+    padding: 12px;
+    margin-bottom: 10px;
+    cursor: pointer;
+    height: fit-content;
+    display: flex;
+    align-items: flex-start;
+    justify-content: flex-start;
+    max-width: 100%;
+    white-space: pre-wrap; 
+    word-break: break-word; 
+    box-sizing: border-box;
+    margin-top: 10px;
+    margin-right: 10px;
+    text-align: start;
+}
+
+.input_wrapper {
+    position: relative;
+    padding-right: 5px;
+    width: 100%;
+    height: fit-content;
+}
+
+.task_block {
+    padding: 0.5vh;
+    display: block;
+    position: relative;
+    height:fit-content;
+} 
+
+
+.task_input_wrapper:focus {
+    border-color: #007bff;
+    box-shadow: 0 0 5px rgba(0, 123,255, 0.5);
+    outline: none;
+}
+
+.task_input:focus{
+    border:none;
+    outline: none;
+}
+ 
+.task_checkbox {
+    position: absolute;
+    top: 50%;
+    right:0;
+    transform: translateY(-50%);
+    margin-left: 10px;
+    appearance: none;
+    width: 15px;
+    height: 15px;
+    border: 2px solid #57d5ff;
+    border-radius: 50%;
+    outline: none;
+    cursor: pointer;
+    margin-right: 8px;
+  
+}
+
+
+input.task_checkbox:checked {
+    background-color:#30b675 ;
+    border-color: #30b675;
+}
+
+input.task_checkbox:checked::before {
+    content: '✔' ;
+    color: white;
+    position:absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+}
+
+.error {
+    font-size:10px;
+}
+
+.wrapper {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+img { 
+    padding-right: 10px;
+    height: 25px;
+    width: 25px;
+}
+
+.no_pinned {
+    display: block;
+    color: rgb(126, 126, 126);
+}
+
+.add_taskslist_button {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    width: 150px;
+    margin-top: 10px;
+    padding: 10px;
+    background: none;
+    color: rgb(43, 42, 42);
+    margin-left: 5px ;
+    border: none;
+}
+
+.cross {
+    font-size: 25px;
+}
+
+.add_taskslist_button:hover{
+    cursor: pointer;
+    border-radius: 10px;
+    background-color: rgb(0, 95, 132);
+}
+
+.add_img {
+    height: 90%;
+    width: 100%;
+}
+
+ .tooltiptext {
+    visibility: hidden;
+    margin-left: 5px ;
+    padding: 2px;
+    width: 50px;
+    font-size: 11px;
+    border-radius: 5px;
+    color: white;
+    background-color: grey;
+    position: relative;
+}
+
+.add_taskslist_button:hover .tooltiptext {
+    visibility: visible;
+}
+
+.tooltip_button {
+    color: grey;
+    cursor: pointer;
+    border: none;
+    background: none;
+    box-shadow: none;
+}
+
+
+.remove_img {
+    height: 20px;
+    width: 20px;
+}
+
+.task_buttons {
+    visibility: hidden;
+    position: absolute;
+    display: flex;
+    top: 0;
+    right:0;
+}
+
+.task_buttons button {
+    width:20px;
+    padding: 5px 10px;
+    border: none;
+    border-radius: 5px;
+    display: flex;
+    cursor: pointer;
+    justify-content: center;
+    align-items: center;
+    background: none;
+}
+
+.task_buttons button:hover {
+    background-color: #ddd;
+}
+
+.filter_input {
+    width: 50%;
+    padding: 8px 12px;
+    font-size: 14px;
+    border-radius: 10px;
+    border: 1px solid #ccc;
+    box-sizing: border-box;
+}
+
+.input_inner_wrapper {
+    display: flex;
+    justify-content: space-between;
+    align-items:center;
+    height: fit-content;
+}
+
+.pinned_tasks {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    gap: 10px;
+}
+
+
+.pinned_wrapper {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    padding: 10px 0;
+}
+
+
+
+.empty_pinned_message {
+    display: none;
+    font-size: 14px;
+    color: gray;
+    text-align: center;
+    margin-top: 10px;
+  }
+
+.line-through {
+text-decoration: line-through;
+color: gray;
+}  
+
+.board_title {
+font-size: 15px;
+font-weight: 600;
+color:#171627;
+border-radius: 5px;
+display: flex;
+}
+
+.pinned_header_wrapper {
+width: 100%;
+display: flex;
+align-items: center;
+justify-content: space-between;
+}
+
+.tooltip {
+    display: flex;
+    justify-content: space-between;
+}
+
+.add_card{
+    color: white;
+    font-weight: bold;
+    background-color: #30b675;
+    border: none;
+    border-radius: 2px;
+    padding: 3px 5px;
+    box-shadow: 0 1px rgba(0,0,0, 0.5);
+}
+
+.add_task_popup {
+    display: flex;
+    align-items: center;
+}
+
+.delete_popup {
+    border: none;
+    color: grey;
+    font-size: 25px;
+    padding: 2px;
+}
+.delete_popup:hover {
+    cursor: pointer;
+    border-radius: 2px;
+    color: rgb(32, 32, 32);
+    font-size: 25px;
+}
+
+.hidden {
+    display: none;
+}
+
+
+.error {
+    color: red;
+    font-size: 12px;
+    margin-top: 5px;
+    }
+    
+    .input-error {
+    border: 1px solid red;
+    background-color: #ffe6e6;
+    }
+
+    .task_input_wrapper:hover .task_buttons {
+    visibility: visible;
+    }
+
+
+@media  screen and (max-width: 640px) {
+    .task_container {
+        width: 90%;
+        display: block;
+    }
+}
