@@ -6,8 +6,7 @@ module.exports = {
   target: "web",
   output: {
     path: path.resolve(__dirname, "dist"),
-    publicPath: '/task_manager/',
-    filename: 'bundle.js',
+    publicPath: "",
   },
   module: {
     rules: [
