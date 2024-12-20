@@ -1,4 +1,4 @@
-import penImagePath from "../img/highlighter.png";
+// import penImagePath from "../img/highlighter.png";
 import Task from "./Task";
 
 export default class Space {
@@ -45,12 +45,12 @@ export default class Space {
     const allTasksHeader = document.createElement("h2");
     allTasksHeader.textContent = "All Tasks";
 
-    const penimg = document.createElement("img");
-    penimg.src = penImagePath;
-    penimg.alt = "pen";
-    penimg.classList.add("pen");
-
-    secondwrapper.append(allTasksHeader, penimg);
+    // const penimg = document.createElement("img");
+    // penimg.src = penImagePath;
+    // penimg.alt = "pen";
+    // penimg.classList.add("pen");
+    secondwrapper.appendChild(allTasksHeader);
+    // secondwrapper.append(allTasksHeader, penimg);
     allTasksWrapper.append(secondwrapper);
 
     const addTaskPopup = document.createElement("div");
