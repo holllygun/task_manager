@@ -17,6 +17,9 @@ export default class UserBoard {
 
   init() {
     const addBtn = document.querySelector(".add_taskslist_button");
+    if (!addBtn) {
+      console.error("Кнопка не найдена!");
+  }
     const searchBar = document.querySelector(".search_bar");
 
     if (localStorage.getItem("searchBarVisible") === "false") {
