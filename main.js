@@ -499,6 +499,8 @@ class UserBoard {
     const addBtn = document.querySelector(".add_taskslist_button");
     if (!addBtn) {
       console.error("Кнопка не найдена!");
+    } else {
+      console.log('added');
     }
     const searchBar = document.querySelector(".search_bar");
     if (localStorage.getItem("searchBarVisible") === "false") {
