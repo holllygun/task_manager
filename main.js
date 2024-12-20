@@ -11,8 +11,6 @@
 /******/ 	
 /************************************************************************/
 
-;// ./src/img/highlighter.png
-const highlighter_namespaceObject = __webpack_require__.p + "ddb0f8f1f5b90c0b8d26.png";
 ;// ./src/img/pin.png
 const pin_namespaceObject = __webpack_require__.p + "40f912e9e8455e4e8ef3.png";
 ;// ./src/js/Task.js
@@ -169,7 +167,7 @@ class Task {
   }
 }
 ;// ./src/js/generate_table.js
-
+// import penImagePath from "../img/highlighter.png";
 
 class Space {
   constructor(board) {
@@ -204,11 +202,13 @@ class Space {
     taskBlock.appendChild(allTasksWrapper);
     const allTasksHeader = document.createElement("h2");
     allTasksHeader.textContent = "All Tasks";
-    const penimg = document.createElement("img");
-    penimg.src = highlighter_namespaceObject;
-    penimg.alt = "pen";
-    penimg.classList.add("pen");
-    secondwrapper.append(allTasksHeader, penimg);
+
+    // const penimg = document.createElement("img");
+    // penimg.src = penImagePath;
+    // penimg.alt = "pen";
+    // penimg.classList.add("pen");
+    secondwrapper.appendChild(allTasksHeader);
+    // secondwrapper.append(allTasksHeader, penimg);
     allTasksWrapper.append(secondwrapper);
     const addTaskPopup = document.createElement("div");
     addTaskPopup.classList.add("add_task_popup", "hidden");
