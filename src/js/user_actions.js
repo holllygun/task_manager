@@ -95,89 +95,64 @@ export default class UserBoard {
   }
 
   dragTask() {
-    const observer = new MutationObserver((mutationsList) => {
-      let taskContainers = document.querySelectorAll(".task_container");
-      console.log("Проверка: Контейнеры найдено", taskContainers.length);
-
-      if (taskContainers.length === 0) {
-        console.error("Контейнеры не найдены");
-      } else {
-        console.log("Контейнеры", taskContainers.length, "шт");
-        this.initializeDrag(taskContainers);
-        observer.disconnect();
-      }
-
-      mutationsList.forEach((mutation) => {
-        if (mutation.type === "childList" && mutation.addedNodes.length) {
-          mutation.addedNodes.forEach((node) => {
-            if (node.classList && node.classList.contains("task_container")) {
-              console.log("Добавлен новый task-container:", node);
-            }
-          });
-        }
+    const taskContainers = document.querySelectorAll(".task_container");
+    taskContainers.forEach((container) => {
+      const tasks = container.querySelectorAll(".task");
+      tasks.forEach((taskElement) => {
+        this.initializeTaskEvents(taskElement);
       });
     });
+  }
 
-    const plannerContainer = document.querySelector(".planner_container");
-    if (plannerContainer) {
-      observer.observe(plannerContainer, { childList: true });
-      console.log("MutationObserver настроен для .planner_container...");
-    } else {
-      console.error("planner_container не найден.");
-    }
+  initializeTaskEvents(taskElement) {
+    taskElement.setAttribute("draggable", "true");
+
+    taskElement.addEventListener("dragstart", (e) => {
+      const taskId = e.target.getAttribute("data-id");
+      e.dataTransfer.setData("text/plain", taskId);
+      e.target.classList.add("dragging");
+    });
+
+    taskElement.addEventListener("dragover", (e) => {
+      e.preventDefault();
+      e.target.classList.add("drag-over");
+    });
+
+    taskElement.addEventListener("dragleave", (e) => {
+      e.target.classList.remove("drag-over");
+    });
+
+    taskElement.addEventListener("drop", (e) => {
+      e.preventDefault();
+      const draggedTaskId = e.dataTransfer.getData("text/plain");
+      const droppedTaskId = e.target.getAttribute("data-id");
+
+      if (draggedTaskId !== droppedTaskId) {
+        this.board.moveTask(draggedTaskId, droppedTaskId);
+        this.triggerTablesUpdated();
+      }
+
+      e.target.classList.remove("drag-over");
+    });
+
+    taskElement.addEventListener("dragend", (e) => {
+      e.target.classList.remove("dragging");
+    });
   }
 
   initializeDrag(taskContainers) {
-    let draggedTask = null;
-
     taskContainers.forEach((container) => {
-      container.replaceWith(container.cloneNode(true));
-    });
+      const tasks = container.querySelectorAll(".task");
+      tasks.forEach((taskElement) => {
+        const taskId = taskElement.getAttribute("data-id");
+        const task = this.board.findTaskById(taskId);
+        if (task) {
+          const newTaskElement = task.createElement();
+          taskElement.replaceWith(newTaskElement);
 
-    document.addEventListener("dragstart", (e) => {
-      if (e.target.classList.contains("task")) {
-        draggedTask = e.target;
-        e.target.classList.add("dragged");
-      }
-    });
-
-    document.addEventListener("dragend", (e) => {
-      if (draggedTask) {
-        draggedTask.classList.remove("dragged");
-        draggedTask = null;
-      }
-    });
-
-    taskContainers.forEach((container) => {
-      container.addEventListener("dragover", (e) => {
-        e.preventDefault();
-        const afterElement = this.getDragAfterElement(container, e.clientY);
-        if (afterElement) {
-          container.insertBefore(draggedTask, afterElement);
-        } else {
-          container.appendChild(draggedTask);
+          this.initializeTaskEvents(newTaskElement);
         }
       });
-
-      container.addEventListener("drop", (e) => {
-        e.preventDefault();
-      });
     });
-  }
-
-  getDragAfterElement(container, y) {
-    const draggableElements = [
-      ...container.querySelectorAll(".task:not(.dragged)"),
-    ];
-    return draggableElements.reduce(
-      (closest, child) => {
-        const box = child.getBoundingClientRect();
-        const offset = y - box.top - box.height / 2;
-        return offset < 0 && offset > closest.offset
-          ? { offset, element: child }
-          : closest;
-      },
-      { offset: Number.NEGATIVE_INFINITY },
-    ).element;
   }
 }

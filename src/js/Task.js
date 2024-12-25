@@ -24,6 +24,11 @@ export default class Task {
     task.draggable = "true";
     const checkbox = task.querySelector(".task_checkbox");
 
+    task.addEventListener("dragstart", this.onDragStart.bind(this));
+    task.addEventListener("dragover", this.onDragOver.bind(this));
+    task.addEventListener("drop", this.onDrop.bind(this));
+    task.addEventListener("dragend", this.onDragEnd.bind(this));
+
     if (this.completed) {
       checkbox.checked = true;
       task.querySelector(".task_input").classList.add("line-through");
@@ -41,11 +46,73 @@ export default class Task {
     return task;
   }
 
+  onDragStart(e) {
+    e.dataTransfer.setData("text/plain", this.id);
+    e.target.classList.add("dragged");
+    console.log("drag");
+  }
+
+  onDragOver(e) {
+    e.preventDefault();
+    console.log("dragover");
+  }
+
+  onDrop(e) {
+    e.preventDefault();
+
+    const droppedTaskId = e.dataTransfer.getData("text/plain");
+    if (!droppedTaskId) {
+      console.error("Ошибка при перетаскивании: id не передан.");
+      return;
+    }
+    console.log(
+      `drop: trying to move task with ID ${droppedTaskId} to ${this.id}`,
+    );
+
+    const boardData = JSON.parse(localStorage.getItem("TaskBoard"));
+    const boardTasks = boardData.tasks[this.boardId];
+    console.log("Current tasks in board before syncing:", boardTasks);
+
+    const taskExists = boardTasks.some((task) => task.id === droppedTaskId);
+
+    if (!taskExists) {
+      console.log(
+        `Task with ID ${droppedTaskId} not found in board ${this.boardId}`,
+      );
+    }
+
+    if (droppedTaskId !== this.id) {
+      this.board.moveTask(droppedTaskId, this.id);
+      console.log("drop executed");
+
+      const oldTaskElement = document.querySelector(
+        `.task[data-id="${droppedTaskId}"]`,
+      );
+      if (oldTaskElement) {
+        oldTaskElement.remove();
+      } else {
+        console.warn(
+          `Не удалось найти старый элемент задачи с id ${droppedTaskId}`,
+        );
+      }
+
+      const taskElement = this.board.getTaskElement(droppedTaskId);
+      taskElement && taskElement.remove();
+      this.board.renderTask(droppedTaskId);
+    }
+  }
+
+  onDragEnd(e) {
+    e.target.classList.remove("dragged");
+  }
+
   syncTaskState() {
     const boardData = JSON.parse(localStorage.getItem("TaskBoard"));
     const table = boardData.tasks[this.boardId];
+    console.log("Current tasks in board before syncing:", table);
     const taskIndex = table.findIndex((task) => task.id === this.id);
     if (taskIndex !== -1) {
+      console.log(`Syncing task with ID ${this.id}`);
       boardData.tasks[this.boardId][taskIndex] = {
         ...boardData.tasks[this.boardId][taskIndex],
         completed: this.completed,
@@ -53,6 +120,8 @@ export default class Task {
         content: this.content,
       };
       localStorage.setItem("TaskBoard", JSON.stringify(boardData));
+    } else {
+      console.log(`Task with ID ${this.id} not found in board data.`);
     }
   }
 
