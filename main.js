@@ -16,22 +16,34 @@ const pin_namespaceObject = __webpack_require__.p + "40f912e9e8455e4e8ef3.png";
 ;// ./src/js/Task.js
 
 class Task {
-  constructor(id, content, boardId, board, isPinned = false) {
+  constructor(id, content, boardId, board, isPinned = false, completed = false) {
     this.id = id;
     this.content = content;
     this.boardId = boardId;
     this.board = board;
     this.isPinned = isPinned;
+    this.completed = completed;
   }
   render() {
     const task = this.createTaskElement(this.content);
     task.setAttribute("data-id", this.id);
     task.setAttribute("data-board-id", this.boardId);
+    task.draggable = "true";
     const checkbox = task.querySelector(".task_checkbox");
     if (this.completed) {
       checkbox.checked = true;
       task.querySelector(".task_input").classList.add("line-through");
     }
+    checkbox.addEventListener("change", () => {
+      const input = task.querySelector(".task_input");
+      this.completed = checkbox.checked;
+      if (this.completed) {
+        input.classList.add("line-through");
+      } else {
+        input.classList.remove("line-through");
+      }
+      this.syncTaskState();
+    });
     return task;
   }
   syncTaskState() {
@@ -137,11 +149,12 @@ class Task {
       pinnedHeaderWrapper.style.display = "flex";
     }
   }
-  addPin(content) {
-    this.isPinned = !this.isPinned;
+  addPin(content, isInitialization = false) {
+    if (!isInitialization) {
+      this.isPinned = !this.isPinned;
+    }
     this.syncTaskState();
     const board = document.querySelector(`.task_container[data-id="${this.boardId}"]`);
-    console.log(board);
     if (!board) return;
     const pinnedWrapper = board.querySelector(".pinned_wrapper");
     if (!pinnedWrapper) {
@@ -150,20 +163,20 @@ class Task {
     const pinnedTasksContainer = board.querySelector(".pinned_wrapper .pinned_tasks");
     const allTasksContainer = board.querySelector(".all_tasks_wrapper");
     const emptyMessage = board.querySelector(".pinned_wrapper .no_pinned_tasks");
-    const existingPinnedTask = pinnedTasksContainer.querySelector(`[data-id="${this.id}"]`);
-    if (existingPinnedTask) {
-      pinnedTasksContainer.removeChild(existingPinnedTask);
-      const taskElement = this.createTaskElement(content);
-      allTasksContainer.appendChild(taskElement);
+    const taskElement = board.querySelector(`.task[data-id="${this.id}"]`);
+    if (!taskElement) return;
+    if (this.isPinned) {
+      pinnedTasksContainer.appendChild(taskElement);
     } else {
-      const pinnedTask = this.createTaskElement(content);
-      pinnedTasksContainer.appendChild(pinnedTask);
-      const task = allTasksContainer.querySelector(`[data-id="${this.id}"]`);
-      if (task) {
-        allTasksContainer.removeChild(task);
-      }
+      allTasksContainer.appendChild(taskElement);
     }
     this.updatePinnedVisibility(pinnedTasksContainer, emptyMessage);
+    const pinButton = taskElement.querySelector(".pinned_task_button");
+    if (this.isPinned) {
+      pinButton.classList.add("active");
+    } else {
+      pinButton.classList.remove("active");
+    }
   }
 }
 ;// ./src/js/generate_table.js
@@ -342,7 +355,8 @@ class Board {
               this.taskFilter.applyFilter(this.taskFilter.filterInput.value.toLowerCase());
             });
             this.tasks[id].forEach(task => {
-              const taskElement = new Task(task.id, task.content, id, this, task.isPinned, task.completed).render();
+              const taskInstance = new Task(task.id, task.content, id, this, task.isPinned, task.completed);
+              const taskElement = taskInstance.render();
               const taskContainer = document.querySelector(`.task_container[data-id="${id}"] .all_tasks_wrapper`);
               taskContainer.appendChild(taskElement);
               if (task.completed) {
@@ -350,29 +364,11 @@ class Board {
                 taskElement.querySelector(".task_input").classList.add("line-through");
               }
               if (task.isPinned) {
-                taskElement.querySelector(".pinned_task_button").classList.add("active");
-              }
-              const taskInput = taskElement.querySelector(".task_input");
-              taskInput.addEventListener("input", event => {
-                task.content = event.target.value;
-                this.saveToLocalStorage();
-              });
-              const checkbox = taskElement.querySelector(".task_checkbox");
-              checkbox.addEventListener("change", event => {
-                task.completed = event.target.checked;
-                if (task.completed) {
-                  taskElement.querySelector(".task_input").classList.add("line-through");
-                } else {
-                  taskElement.querySelector(".task_input").classList.remove("line-through");
+                const board = document.querySelector(`.task_container[data-id="${id}"]`);
+                if (board) {
+                  taskInstance.addPin(task.content, true);
                 }
-                this.saveToLocalStorage();
-              });
-              const pinButton = taskElement.querySelector(".pinned_task_button");
-              pinButton.addEventListener("click", () => {
-                task.isPinned = !task.isPinned;
-                pinButton.classList.toggle("active");
-                this.saveToLocalStorage();
-              });
+              }
             });
           }
         }
@@ -500,7 +496,7 @@ class UserBoard {
     if (!addBtn) {
       console.error("Кнопка не найдена!");
     } else {
-      console.log('added');
+      console.log("Кнопка добавлена");
     }
     const searchBar = document.querySelector(".search_bar");
     if (localStorage.getItem("searchBarVisible") === "false") {
@@ -514,12 +510,14 @@ class UserBoard {
         this.board.removeTable(removeId);
         this.taskFilter.applyFilter(this.taskFilter.filterInput.value.toLowerCase());
         this.updateSearchBarVisibility();
+        this.triggerTablesUpdated();
       }, (taskId, taskContent) => {
         this.board.addTaskToTable(id, {
           id: taskId,
           content: taskContent
         });
         this.taskFilter.applyFilter(this.taskFilter.filterInput.value.toLowerCase());
+        this.triggerTablesUpdated();
       });
       this.taskFilter.applyFilter(this.taskFilter.filterInput.value.toLowerCase());
       this.updateSearchBarVisibility();
@@ -535,6 +533,10 @@ class UserBoard {
       localStorage.setItem("searchQuery", filterValue);
       this.taskFilter.applyFilter(filterValue.toLowerCase());
     });
+    document.addEventListener("tablesUpdated", () => {
+      console.log("Событие tablesUpdated запущено");
+      this.dragTask();
+    });
   }
   updateSearchBarVisibility() {
     const searchBar = document.querySelector(".search_bar");
@@ -544,6 +546,85 @@ class UserBoard {
     } else {
       searchBar.classList.add("hidden");
     }
+  }
+  triggerTablesUpdated() {
+    document.dispatchEvent(new CustomEvent("tablesUpdated"));
+  }
+  dragTask() {
+    const observer = new MutationObserver(mutationsList => {
+      let taskContainers = document.querySelectorAll(".task_container");
+      console.log("Проверка: Контейнеры найдено", taskContainers.length);
+      if (taskContainers.length === 0) {
+        console.error("Контейнеры не найдены");
+      } else {
+        console.log("Контейнеры", taskContainers.length, "шт");
+        this.initializeDrag(taskContainers);
+        observer.disconnect();
+      }
+      mutationsList.forEach(mutation => {
+        if (mutation.type === "childList" && mutation.addedNodes.length) {
+          mutation.addedNodes.forEach(node => {
+            if (node.classList && node.classList.contains("task_container")) {
+              console.log("Добавлен новый task-container:", node);
+            }
+          });
+        }
+      });
+    });
+    const plannerContainer = document.querySelector(".planner_container");
+    if (plannerContainer) {
+      observer.observe(plannerContainer, {
+        childList: true
+      });
+      console.log("MutationObserver настроен для .planner_container...");
+    } else {
+      console.error("planner_container не найден.");
+    }
+  }
+  initializeDrag(taskContainers) {
+    let draggedTask = null;
+    taskContainers.forEach(container => {
+      container.replaceWith(container.cloneNode(true));
+    });
+    document.addEventListener("dragstart", e => {
+      if (e.target.classList.contains("task")) {
+        draggedTask = e.target;
+        e.target.classList.add("dragged");
+      }
+    });
+    document.addEventListener("dragend", e => {
+      if (draggedTask) {
+        draggedTask.classList.remove("dragged");
+        draggedTask = null;
+      }
+    });
+    taskContainers.forEach(container => {
+      container.addEventListener("dragover", e => {
+        e.preventDefault();
+        const afterElement = this.getDragAfterElement(container, e.clientY);
+        if (afterElement) {
+          container.insertBefore(draggedTask, afterElement);
+        } else {
+          container.appendChild(draggedTask);
+        }
+      });
+      container.addEventListener("drop", e => {
+        e.preventDefault();
+      });
+    });
+  }
+  getDragAfterElement(container, y) {
+    const draggableElements = [...container.querySelectorAll(".task:not(.dragged)")];
+    return draggableElements.reduce((closest, child) => {
+      const box = child.getBoundingClientRect();
+      const offset = y - box.top - box.height / 2;
+      return offset < 0 && offset > closest.offset ? {
+        offset,
+        element: child
+      } : closest;
+    }, {
+      offset: Number.NEGATIVE_INFINITY
+    }).element;
   }
 }
 ;// ./src/js/app.js
