@@ -58,14 +58,16 @@ export default class Board {
             );
 
             this.tasks[id].forEach((task) => {
-              const taskElement = new Task(
+              const taskInstance = new Task(
                 task.id,
                 task.content,
                 id,
                 this,
                 task.isPinned,
                 task.completed,
-              ).render();
+              );
+
+              const taskElement = taskInstance.render();
               const taskContainer = document.querySelector(
                 `.task_container[data-id="${id}"] .all_tasks_wrapper`,
               );
@@ -79,40 +81,13 @@ export default class Board {
               }
 
               if (task.isPinned) {
-                taskElement
-                  .querySelector(".pinned_task_button")
-                  .classList.add("active");
-              }
-
-              const taskInput = taskElement.querySelector(".task_input");
-              taskInput.addEventListener("input", (event) => {
-                task.content = event.target.value;
-                this.saveToLocalStorage();
-              });
-
-              const checkbox = taskElement.querySelector(".task_checkbox");
-              checkbox.addEventListener("change", (event) => {
-                task.completed = event.target.checked;
-                if (task.completed) {
-                  taskElement
-                    .querySelector(".task_input")
-                    .classList.add("line-through");
-                } else {
-                  taskElement
-                    .querySelector(".task_input")
-                    .classList.remove("line-through");
+                const board = document.querySelector(
+                  `.task_container[data-id="${id}"]`,
+                );
+                if (board) {
+                  taskInstance.addPin(task.content, true);
                 }
-                this.saveToLocalStorage();
-              });
-
-              const pinButton = taskElement.querySelector(
-                ".pinned_task_button",
-              );
-              pinButton.addEventListener("click", () => {
-                task.isPinned = !task.isPinned;
-                pinButton.classList.toggle("active");
-                this.saveToLocalStorage();
-              });
+              }
             });
           }
         }

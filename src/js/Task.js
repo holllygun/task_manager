@@ -1,24 +1,43 @@
 import pinImage from "../img/pin.png";
 
 export default class Task {
-  constructor(id, content, boardId, board, isPinned = false) {
+  constructor(
+    id,
+    content,
+    boardId,
+    board,
+    isPinned = false,
+    completed = false,
+  ) {
     this.id = id;
     this.content = content;
     this.boardId = boardId;
     this.board = board;
     this.isPinned = isPinned;
+    this.completed = completed;
   }
 
   render() {
     const task = this.createTaskElement(this.content);
     task.setAttribute("data-id", this.id);
     task.setAttribute("data-board-id", this.boardId);
-
+    task.draggable = "true";
     const checkbox = task.querySelector(".task_checkbox");
+
     if (this.completed) {
       checkbox.checked = true;
       task.querySelector(".task_input").classList.add("line-through");
     }
+    checkbox.addEventListener("change", () => {
+      const input = task.querySelector(".task_input");
+      this.completed = checkbox.checked;
+      if (this.completed) {
+        input.classList.add("line-through");
+      } else {
+        input.classList.remove("line-through");
+      }
+      this.syncTaskState();
+    });
     return task;
   }
 
@@ -161,17 +180,19 @@ export default class Task {
     }
   }
 
-  addPin(content) {
-    this.isPinned = !this.isPinned;
+  addPin(content, isInitialization = false) {
+    if (!isInitialization) {
+      this.isPinned = !this.isPinned;
+    }
+
     this.syncTaskState();
+
     const board = document.querySelector(
       `.task_container[data-id="${this.boardId}"]`,
     );
-    console.log(board);
     if (!board) return;
 
     const pinnedWrapper = board.querySelector(".pinned_wrapper");
-
     if (!pinnedWrapper) {
       this.createPinnedSection(board);
     }
@@ -184,23 +205,22 @@ export default class Task {
       ".pinned_wrapper .no_pinned_tasks",
     );
 
-    const existingPinnedTask = pinnedTasksContainer.querySelector(
-      `[data-id="${this.id}"]`,
-    );
-    if (existingPinnedTask) {
-      pinnedTasksContainer.removeChild(existingPinnedTask);
+    const taskElement = board.querySelector(`.task[data-id="${this.id}"]`);
+    if (!taskElement) return;
 
-      const taskElement = this.createTaskElement(content);
-      allTasksContainer.appendChild(taskElement);
+    if (this.isPinned) {
+      pinnedTasksContainer.appendChild(taskElement);
     } else {
-      const pinnedTask = this.createTaskElement(content);
-      pinnedTasksContainer.appendChild(pinnedTask);
-
-      const task = allTasksContainer.querySelector(`[data-id="${this.id}"]`);
-      if (task) {
-        allTasksContainer.removeChild(task);
-      }
+      allTasksContainer.appendChild(taskElement);
     }
+
     this.updatePinnedVisibility(pinnedTasksContainer, emptyMessage);
+
+    const pinButton = taskElement.querySelector(".pinned_task_button");
+    if (this.isPinned) {
+      pinButton.classList.add("active");
+    } else {
+      pinButton.classList.remove("active");
+    }
   }
 }

@@ -353,6 +353,14 @@ justify-content: space-between;
     visibility: visible;
     }
 
+.task.dragged {
+    opacity: 0.7;
+    transform: scale(1.05);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+    }
+.task-container.drag-over {
+    border-color: #007bff; 
+    }
 
 @media  screen and (max-width: 640px) {
     .task_container {
