@@ -30,6 +30,10 @@ class Task {
     task.setAttribute("data-board-id", this.boardId);
     task.draggable = "true";
     const checkbox = task.querySelector(".task_checkbox");
+    task.addEventListener("dragstart", this.onDragStart.bind(this));
+    task.addEventListener("dragover", this.onDragOver.bind(this));
+    task.addEventListener("drop", this.onDrop.bind(this));
+    task.addEventListener("dragend", this.onDragEnd.bind(this));
     if (this.completed) {
       checkbox.checked = true;
       task.querySelector(".task_input").classList.add("line-through");
@@ -46,11 +50,54 @@ class Task {
     });
     return task;
   }
+  onDragStart(e) {
+    e.dataTransfer.setData("text/plain", this.id);
+    e.target.classList.add("dragged");
+    console.log("drag");
+  }
+  onDragOver(e) {
+    e.preventDefault();
+    console.log("dragover");
+  }
+  onDrop(e) {
+    e.preventDefault();
+    const droppedTaskId = e.dataTransfer.getData("text/plain");
+    if (!droppedTaskId) {
+      console.error("Ошибка при перетаскивании: id не передан.");
+      return;
+    }
+    console.log(`drop: trying to move task with ID ${droppedTaskId} to ${this.id}`);
+    const boardData = JSON.parse(localStorage.getItem("TaskBoard"));
+    const boardTasks = boardData.tasks[this.boardId];
+    console.log("Current tasks in board before syncing:", boardTasks);
+    const taskExists = boardTasks.some(task => task.id === droppedTaskId);
+    if (!taskExists) {
+      console.log(`Task with ID ${droppedTaskId} not found in board ${this.boardId}`);
+    }
+    if (droppedTaskId !== this.id) {
+      this.board.moveTask(droppedTaskId, this.id);
+      console.log("drop executed");
+      const oldTaskElement = document.querySelector(`.task[data-id="${droppedTaskId}"]`);
+      if (oldTaskElement) {
+        oldTaskElement.remove();
+      } else {
+        console.warn(`Не удалось найти старый элемент задачи с id ${droppedTaskId}`);
+      }
+      const taskElement = this.board.getTaskElement(droppedTaskId);
+      taskElement && taskElement.remove();
+      this.board.renderTask(droppedTaskId);
+    }
+  }
+  onDragEnd(e) {
+    e.target.classList.remove("dragged");
+  }
   syncTaskState() {
     const boardData = JSON.parse(localStorage.getItem("TaskBoard"));
     const table = boardData.tasks[this.boardId];
+    console.log("Current tasks in board before syncing:", table);
     const taskIndex = table.findIndex(task => task.id === this.id);
     if (taskIndex !== -1) {
+      console.log(`Syncing task with ID ${this.id}`);
       boardData.tasks[this.boardId][taskIndex] = {
         ...boardData.tasks[this.boardId][taskIndex],
         completed: this.completed,
@@ -58,6 +105,8 @@ class Task {
         content: this.content
       };
       localStorage.setItem("TaskBoard", JSON.stringify(boardData));
+    } else {
+      console.log(`Task with ID ${this.id} not found in board data.`);
     }
   }
   createTaskElement(content) {
@@ -322,6 +371,60 @@ class Board {
     this.taskFilter = taskFilter;
     this.taskFilter.applyFilter(this.taskFilter.filterInput.value.toLowerCase());
   }
+  moveTask(sourceTaskId, targetTaskId) {
+    console.log(`Attempting to move task from ${sourceTaskId} to ${targetTaskId}`);
+    const sourceTask = this.findTaskById(sourceTaskId);
+    const targetTask = this.findTaskById(targetTaskId);
+    if (sourceTask && targetTask) {
+      console.log(`Found source task:`, sourceTask);
+      console.log(`Found target task:`, targetTask);
+      const sourceContainer = document.querySelector(`.task_container[data-board-id="${sourceTask.boardId}"]`);
+      const targetContainer = document.querySelector(`.task_container[data-board-id="${targetTask.boardId}"]`);
+      if (sourceContainer && targetContainer) {
+        console.log(`Found source container:`, sourceContainer);
+        console.log(`Found target container:`, targetContainer);
+        const taskElement = sourceContainer.querySelector(`.task[data-id="${sourceTaskId}"]`);
+        console.log(`Found task element to move:`, taskElement);
+        if (taskElement) {
+          targetContainer.appendChild(taskElement);
+          console.log(`Task moved successfully`);
+          this.updateTaskBoard(sourceTaskId, targetTask.boardId);
+          console.log(`Task board updated:`, this.tasks);
+          this.saveToLocalStorage();
+          console.log(`Changes saved to local storage`);
+        } else {
+          console.error(`Task element not found in the source container`);
+        }
+      } else {
+        console.error(`Source or target container not found.`);
+      }
+    } else {
+      console.error(`Source or target task not found.`);
+    }
+  }
+  findTaskById(taskId) {
+    console.log(`Looking for task with ID: ${taskId}`);
+    for (const boardId in this.tasks) {
+      const task = this.tasks[boardId].find(t => t.id === taskId);
+      if (task) {
+        console.log(`Task found for board ${boardId}:`, task);
+        return task;
+      }
+    }
+    console.log(`Task with ID ${taskId} not found.`);
+    return null;
+  }
+  updateTaskBoard(taskId, newBoardId) {
+    for (const boardId in this.tasks) {
+      const taskIndex = this.tasks[boardId].findIndex(t => t.id === taskId);
+      if (taskIndex !== -1) {
+        const [task] = this.tasks[boardId].splice(taskIndex, 1);
+        this.tasks[newBoardId] = this.tasks[newBoardId] || [];
+        this.tasks[newBoardId].push(task);
+        return;
+      }
+    }
+  }
   saveToLocalStorage() {
     try {
       const data = {
@@ -329,9 +432,9 @@ class Board {
         tasks: this.tasks
       };
       localStorage.setItem("TaskBoard", JSON.stringify(data));
-      console.log("setted", data);
+      console.log("Saved to localStorage", data);
     } catch (error) {
-      console.error("failed to save tasks in local storage", error);
+      console.error("Failed to save tasks in local storage", error);
     }
   }
   loadFromLocalStorage() {
@@ -341,7 +444,7 @@ class Board {
         const parsedData = JSON.parse(data);
         this.counter = parsedData.counter || 0;
         this.tasks = parsedData.tasks || {};
-        console.log("loaded", parsedData.tasks);
+        console.log("Loaded tasks:", this.tasks);
         for (const id in this.tasks) {
           if (Object.prototype.hasOwnProperty.call(this.tasks, id)) {
             this.space.generateTable(id, removeId => {
@@ -375,7 +478,7 @@ class Board {
         document.dispatchEvent(new Event("boardInitialized"));
       }
     } catch (error) {
-      console.error("failed to load tasks from local storage", error);
+      console.error("Failed to load tasks from local storage", error);
     }
   }
   addTable() {
@@ -386,7 +489,7 @@ class Board {
     return id;
   }
   removeTable(id) {
-    console.log("remove");
+    console.log("Removing table with ID:", id);
     delete this.tasks[id];
     this.saveToLocalStorage();
   }
@@ -415,6 +518,33 @@ class Board {
     this.tasks[tableId] = this.tasks[tableId].filter(task => task.id !== taskId);
     this.saveToLocalStorage();
     this.taskFilter.applyFilter(this.taskFilter.filterInput.value.toLowerCase());
+  }
+  getTaskElement(taskId) {
+    for (const boardId in this.tasks) {
+      const boardContainer = document.querySelector(`.task_container[data-id="${boardId}"]`);
+      if (boardContainer) {
+        const taskElement = boardContainer.querySelector(`.task[data-id="${taskId}"]`);
+        if (taskElement) {
+          return taskElement;
+        }
+      }
+    }
+    return null;
+  }
+  renderTask(taskId) {
+    for (const boardId in this.tasks) {
+      const boardContainer = document.querySelector(`.task_container[data-id="${boardId}"]`);
+      if (boardContainer) {
+        const task = this.tasks[boardId].find(t => t.id === taskId);
+        if (task) {
+          const taskInstance = new Task(task.id, task.content, boardId, this, task.isPinned, task.completed);
+          const taskElement = taskInstance.render();
+          const taskContainer = boardContainer.querySelector(".all_tasks_wrapper");
+          taskContainer.appendChild(taskElement);
+          break;
+        }
+      }
+    }
   }
 }
 ;// ./src/js/task_filter.js
@@ -551,80 +681,55 @@ class UserBoard {
     document.dispatchEvent(new CustomEvent("tablesUpdated"));
   }
   dragTask() {
-    const observer = new MutationObserver(mutationsList => {
-      let taskContainers = document.querySelectorAll(".task_container");
-      console.log("Проверка: Контейнеры найдено", taskContainers.length);
-      if (taskContainers.length === 0) {
-        console.error("Контейнеры не найдены");
-      } else {
-        console.log("Контейнеры", taskContainers.length, "шт");
-        this.initializeDrag(taskContainers);
-        observer.disconnect();
-      }
-      mutationsList.forEach(mutation => {
-        if (mutation.type === "childList" && mutation.addedNodes.length) {
-          mutation.addedNodes.forEach(node => {
-            if (node.classList && node.classList.contains("task_container")) {
-              console.log("Добавлен новый task-container:", node);
-            }
-          });
-        }
+    const taskContainers = document.querySelectorAll(".task_container");
+    taskContainers.forEach(container => {
+      const tasks = container.querySelectorAll(".task");
+      tasks.forEach(taskElement => {
+        this.initializeTaskEvents(taskElement);
       });
     });
-    const plannerContainer = document.querySelector(".planner_container");
-    if (plannerContainer) {
-      observer.observe(plannerContainer, {
-        childList: true
-      });
-      console.log("MutationObserver настроен для .planner_container...");
-    } else {
-      console.error("planner_container не найден.");
-    }
+  }
+  initializeTaskEvents(taskElement) {
+    taskElement.setAttribute("draggable", "true");
+    taskElement.addEventListener("dragstart", e => {
+      const taskId = e.target.getAttribute("data-id");
+      e.dataTransfer.setData("text/plain", taskId);
+      e.target.classList.add("dragging");
+    });
+    taskElement.addEventListener("dragover", e => {
+      e.preventDefault();
+      e.target.classList.add("drag-over");
+    });
+    taskElement.addEventListener("dragleave", e => {
+      e.target.classList.remove("drag-over");
+    });
+    taskElement.addEventListener("drop", e => {
+      e.preventDefault();
+      const draggedTaskId = e.dataTransfer.getData("text/plain");
+      const droppedTaskId = e.target.getAttribute("data-id");
+      if (draggedTaskId !== droppedTaskId) {
+        this.board.moveTask(draggedTaskId, droppedTaskId);
+        this.triggerTablesUpdated();
+      }
+      e.target.classList.remove("drag-over");
+    });
+    taskElement.addEventListener("dragend", e => {
+      e.target.classList.remove("dragging");
+    });
   }
   initializeDrag(taskContainers) {
-    let draggedTask = null;
     taskContainers.forEach(container => {
-      container.replaceWith(container.cloneNode(true));
-    });
-    document.addEventListener("dragstart", e => {
-      if (e.target.classList.contains("task")) {
-        draggedTask = e.target;
-        e.target.classList.add("dragged");
-      }
-    });
-    document.addEventListener("dragend", e => {
-      if (draggedTask) {
-        draggedTask.classList.remove("dragged");
-        draggedTask = null;
-      }
-    });
-    taskContainers.forEach(container => {
-      container.addEventListener("dragover", e => {
-        e.preventDefault();
-        const afterElement = this.getDragAfterElement(container, e.clientY);
-        if (afterElement) {
-          container.insertBefore(draggedTask, afterElement);
-        } else {
-          container.appendChild(draggedTask);
+      const tasks = container.querySelectorAll(".task");
+      tasks.forEach(taskElement => {
+        const taskId = taskElement.getAttribute("data-id");
+        const task = this.board.findTaskById(taskId);
+        if (task) {
+          const newTaskElement = task.createElement();
+          taskElement.replaceWith(newTaskElement);
+          this.initializeTaskEvents(newTaskElement);
         }
       });
-      container.addEventListener("drop", e => {
-        e.preventDefault();
-      });
     });
-  }
-  getDragAfterElement(container, y) {
-    const draggableElements = [...container.querySelectorAll(".task:not(.dragged)")];
-    return draggableElements.reduce((closest, child) => {
-      const box = child.getBoundingClientRect();
-      const offset = y - box.top - box.height / 2;
-      return offset < 0 && offset > closest.offset ? {
-        offset,
-        element: child
-      } : closest;
-    }, {
-      offset: Number.NEGATIVE_INFINITY
-    }).element;
   }
 }
 ;// ./src/js/app.js
